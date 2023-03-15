@@ -34,18 +34,67 @@ public class MainActivity extends AppCompatActivity {
         txt_respuesta = (TextView) findViewById(R.id.txt_respuesta);
 
         try {
-            hacer_llamada_al_aemet();
+            hacer_llamada_al_aemet(URL_PETICION1);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    void hacer_llamada_al_aemet() throws IOException {
+    void hacer_llamada_al_aemet(String URL_PETICION) throws IOException {
 
         OkHttpClient client = new OkHttpClient();
 
         Request request = new Request.Builder()
-                .url(URL_PETICION1)
+                .url(URL_PETICION)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                final String myResponse = response.body().string();
+                String descripcion = "";
+                String estado = "";
+                String datos =  "";
+                String metadatos =  "";
+                try {
+                    JSONObject json_respuesta = new JSONObject(myResponse);
+                    descripcion = json_respuesta.getString("descripcion");
+                    estado = json_respuesta.getString("estado");
+                    metadatos =  json_respuesta.getString("datos");
+                    datos =  json_respuesta.getString("datos");
+                    obtener_datos_aemet(datos);
+                    try {
+                        obtener_datos_aemet(datos);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+
+             /*
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        txt_respuesta.setText(myResponse);
+                    }
+                });
+            */
+            }
+
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                call.cancel();
+            }
+        });
+    }
+
+    void obtener_datos_aemet(String URL_PETICION) throws IOException {
+
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url(URL_PETICION)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
@@ -56,9 +105,11 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        txt_respuesta.setText(myResponse);
+                        txt_respuesta.setText( myResponse);
                     }
                 });
+
+
             }
 
             @Override
@@ -67,5 +118,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
 }
