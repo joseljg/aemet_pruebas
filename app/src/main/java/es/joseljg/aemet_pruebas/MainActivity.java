@@ -4,15 +4,19 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 //----------------------------------------------------
+import com.google.gson.Gson;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -63,32 +67,17 @@ public class MainActivity extends AppCompatActivity {
                     metadatos =  json_respuesta.getString("datos");
                     datos =  json_respuesta.getString("datos");
                     obtener_datos_aemet(datos);
-                    try {
-                        obtener_datos_aemet(datos);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
-
-             /*
-                MainActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        txt_respuesta.setText(myResponse);
-                    }
-                });
-            */
             }
-
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 call.cancel();
             }
         });
     }
-
+//----------------------------------------------------------------------------------------------------------------
     void obtener_datos_aemet(String URL_PETICION) throws IOException {
 
         OkHttpClient client = new OkHttpClient();
@@ -100,16 +89,43 @@ public class MainActivity extends AppCompatActivity {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                final String myResponse = response.body().string();
 
+                // transformo los datos json obtenidos a un arrayList<Estacion> estaciones
+               // mas información aquí: https://www.javatpoint.com/how-to-convert-json-array-to-arraylist-in-java
+                String myResponse = "";
+                ArrayList<Estacion> estaciones = new ArrayList<Estacion>();
+                try {
+                    myResponse = response.body().string();
+                    JSONArray jsonArray = new JSONArray(myResponse);
+                    if (jsonArray != null) {
+                        for (int i=0;i<jsonArray.length();i++){
+                            jsonArray.get(i);
+                            Gson gson= new Gson();
+                            Estacion e1 = gson.fromJson(jsonArray.get(i).toString(),Estacion.class);
+                           Log.i("json", "estacion " + i + " : "+ e1.toString());
+                           System.out.println("estacion " + i + " i: " + e1.toString());
+                            estaciones.add(e1);
+                        }
+                    }
+                    // aquí tendrías que llamar al adaptador del recyclerview como en firebase, añadiendo los datos asíncronos recibidos
+                    // adaptador_recyclerview.setListaEstaciones(estaciones);
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+
+                String finalMyResponse = myResponse;
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        txt_respuesta.setText( myResponse);
+                        String texto = "";
+                        for (Estacion es: estaciones )
+                        {
+                                texto = texto + es.getNombre() + "\n\n";
+                        }
+                        txt_respuesta.setText(texto);
+                        // txt_respuesta.setText(finalMyResponse);
                     }
                 });
-
-
             }
 
             @Override
